@@ -1,72 +1,72 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using System.Threading.Tasks;
 using Tabpol.Entities;
 using Tabpol.Models;
+using Tabpol.Services;
 
 namespace Tabpol.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class AuthController(IConfiguration configuration) : ControllerBase
+    public class AuthController(IAuthService authService, IConfiguration configuration) : ControllerBase
     {
         public static User user = new();
-        public static PasswordHasher<User> passwordHasher = new PasswordHasher<User>(); 
+        public static PasswordHasher<User> passwordHasher = new PasswordHasher<User>();
         [HttpPost("register")]
-        public ActionResult<User> Register(UserDto request)
+        public async Task<ActionResult<User>> Register(UserDto request)
         {
-            var hashedPassword = passwordHasher
-                .HashPassword(user, request.Password);
-
-            user.Username = request.Username;
-            user.PasswordHash = hashedPassword;
+            var user = await authService.RegisterAsync(request);
+            if (user is null)
+            {
+                return BadRequest("Username already exists.");
+            }
 
             return Ok(user);
         }
 
         [HttpPost("login")]
-        public ActionResult<string> Login(UserDto request) 
+        public async Task<ActionResult<TokenResponseDto>> Login(UserDto request)
         {
-            if (user.Username != request.Username) 
+            var token = await authService.LoginAsync(request);
+            if (token is null)
             {
-                return BadRequest("User not found");
+                return BadRequest("Invalid username or password.");
             }
-            var verifyHashedPasswordResult = passwordHasher.VerifyHashedPassword(user, user.PasswordHash, request.Password);
-            if (verifyHashedPasswordResult == PasswordVerificationResult.Failed)
-            {
-                return BadRequest("Wrong password.");
-            }
-
-            string token = CreateToken(user);
-
             return Ok(token);
         }
 
-        private string CreateToken(User user)
+        [HttpPost("refresh-token")]
+        public async Task<ActionResult<TokenResponseDto>> RefreshToken(RefreshTokenRequestDto request)
         {
-            var claims = new List<Claim>
+            var result = await authService.RefreshTokensAsync(request);
+            if (result is null || result.AccesToken is null || result.RefreshToken is null )
             {
-                new Claim(ClaimTypes.Name, user.Username)
-            };
+                return BadRequest("Invalid or expired refresh token.");
+            }
 
-            var key = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(configuration.GetValue<string>("AppSettings:Token")!));
+            return Ok(result);
+        }
 
-            var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha512);
+        [Authorize]
+        [HttpGet]
+        public IActionResult AuthenticatedOnlyEndpoint()
+        {
+            return Ok("You are authenticated");
+        }
 
-            var tokenDescriptor = new JwtSecurityToken(
-                issuer: configuration.GetValue<string>("AppSettings:Issuer"),
-                audience: configuration.GetValue<string>("AppSettings:Audience"),
-                claims: claims,
-                expires: DateTime.UtcNow.AddDays(7),
-                signingCredentials: credentials
-            );
 
-            return new JwtSecurityTokenHandler().WriteToken(tokenDescriptor);
+        [Authorize(Roles = "Admin")]
+        [HttpGet("admin")]
+        public IActionResult AdminOnlyEndpoint()
+        {
+            return Ok("Admin authenticated");
         }
     }
 }
