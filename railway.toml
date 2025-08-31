@@ -1,0 +1,8 @@
+[build]
+builder = "dockerfile"
+dockerfilePath = "./Tabpol/Dockerfile"
+
+[deploy]
+startCommand = "dotnet Tabpol.dll"
+restartPolicy = "always"
+healthCheckPath = "/health"
