@@ -54,6 +54,7 @@ namespace Tabpol.Services
 
             user.Username = request.Username;
             user.PasswordHash = hashedPassword;
+            user.Role = request.Role;
 
             context.Users.Add(user);
             await context.SaveChangesAsync();
