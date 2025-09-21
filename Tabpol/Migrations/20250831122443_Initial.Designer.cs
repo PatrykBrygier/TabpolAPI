@@ -11,7 +11,7 @@ using Tabpol.Data;
 
 namespace Tabpol.Migrations
 {
-    [DbContext(typeof(IdentityDbContext))]
+    [DbContext(typeof(AppDbContext))]
     [Migration("20250831122443_Initial")]
     partial class Initial
     {

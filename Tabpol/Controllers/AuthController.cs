@@ -1,14 +1,10 @@
 ﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.IdentityModel.Tokens;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
-using System.Text;
-using System.Threading.Tasks;
 using Tabpol.Entities;
 using Tabpol.Models;
+using Tabpol.Models.Requests;
+using Tabpol.Models.Responses;
 using Tabpol.Services;
 
 namespace Tabpol.Controllers
@@ -19,6 +15,7 @@ namespace Tabpol.Controllers
     {
         public static User user = new();
         public static PasswordHasher<User> passwordHasher = new PasswordHasher<User>();
+
         [HttpPost("register")]
         public async Task<ActionResult<User>> Register(UserDto request)
         {
@@ -52,6 +49,17 @@ namespace Tabpol.Controllers
             }
 
             return Ok(result);
+        }
+
+        [HttpGet("user-data")]
+        public async Task<ActionResult<UserDto>> GetUserData([FromQuery]UserDataRequestDto request) 
+        {
+            var user = await authService.GetUserDataAsync(request);
+            if (user is null) 
+            {
+                return NotFound("User not found.");
+            }
+            return Ok(user);
         }
 
         [Authorize]

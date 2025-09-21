@@ -1,4 +1,4 @@
-﻿namespace Tabpol.Models
+﻿namespace Tabpol.Models.Responses
 {
     public class TokenResponseDto
     {

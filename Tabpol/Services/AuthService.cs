@@ -8,10 +8,12 @@ using System.Text;
 using Tabpol.Data;
 using Tabpol.Entities;
 using Tabpol.Models;
+using Tabpol.Models.Requests;
+using Tabpol.Models.Responses;
 
 namespace Tabpol.Services
 {
-    public class AuthService(IdentityDbContext context, IConfiguration configuration) : IAuthService
+    public class AuthService(AppDbContext context, IConfiguration configuration) : IAuthService
     {
         public async Task<TokenResponseDto?> LoginAsync(UserDto request)
         {
@@ -123,6 +125,21 @@ namespace Tabpol.Services
             }
 
             return await CreateTokenResponse(user);
+        }
+
+        public async Task<UserResponseDto?> GetUserDataAsync(UserDataRequestDto request)
+        {
+            var user = await context.Users
+                .Where(u => u.Id == request.UserId)
+                .Select(u => new UserResponseDto
+                {
+                    Id = u.Id,
+                    Username = u.Username,
+                    Role = u.Role
+                })
+                .FirstOrDefaultAsync();
+
+            return user;
         }
     }
 }
